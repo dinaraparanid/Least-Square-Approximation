@@ -51,4 +51,4 @@ namespace predator_prey {
 	) noexcept { return v(time, a1, b1, a2, b2, v0, k0) + a2 / b2; }
 }
 
-#endif //PREDATOR_PREY_HPP
+#endif // PREDATOR_PREY_HPP
