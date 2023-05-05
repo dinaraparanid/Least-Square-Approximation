@@ -6,10 +6,10 @@
 #include "agla/predator_prey.hpp"
 
 int main() {
-	/*std::random_device random_device;
+	std::random_device random_device;
 	std::mt19937 rng(random_device());
-	std::uniform_int_distribution<std::size_t> int_generator(20, 50);
-	std::uniform_real_distribution<long double> double_generator(0.1, 1.0);
+	std::uniform_int_distribution<std::size_t> int_generator(20, 30);
+	std::uniform_real_distribution<long double> double_generator(0.5, 1.0);
 
 	const auto rand_int = [&int_generator, &rng]() {
 		return int_generator(rng);
@@ -74,70 +74,66 @@ int main() {
 
 	Gnuplot plot;
 
-	const auto min_v = std::min_element(victims_coefficients.begin(), victims_coefficients.end());
-	const auto max_v = std::max_element(victims_coefficients.begin(), victims_coefficients.end());
+	std::vector<long double> y_coordinates((points + 1) * 2);
+	std::copy(victims_coefficients.begin(), victims_coefficients.end(), y_coordinates.begin());
+	std::copy(killers_coefficients.begin(), killers_coefficients.end(), y_coordinates.begin() + (points + 1));
 
 	plot
-		.savetops("victims")
+		.savetops("victims and killers")
 		.set_title("Victims")
 		.set_grid()
 		.set_style("lines")
 		.set_xlabel("time")
-		.set_ylabel("victims")
+		.set_ylabel("victims/killers")
 		.set_style("points")
-		.set_xrange(0, tl)
-		.set_yrange(*min_v, *max_v)
 		.plot_xy(times, victims_coefficients)
-		.set_style("lines")
-		.plot_equation(v_equation, "v(t)")
-		.showonscreen();
-
-	plot
-		.reset_all()
-		.savetops("killers")
-		.set_title("Killers")
-		.set_grid()
-		.set_style("lines")
-		.set_xlabel("time")
-		.set_ylabel("killers")
-		.set_style("points")
 		.plot_xy(times, killers_coefficients)
 		.set_style("lines")
+		.plot_equation(v_equation, "v(t)")
 		.plot_equation(k_equation, "k(t)")
 		.showonscreen();
+
+	// How to construct the equation
+	//
+	// x1^2 / a^2 + y1^2 / b^2 = 1
+	// x2^2 / a^2 + y2^2 / b^2 = 1
+	//
+	// x1^2 * b^2 + y1^2 * a^2 = (ab)^2
+	// x2^2 * b^2 + y2^2 * a^2 = (ab)^2
+	//
+	// (x1^2 - x2^2) * b^2 = (y2^2 - y1^2) * a^2
+	// b^2 = (y2^2 - y1^2) * a^2 / (x1^2 - x2^2)
+	//
+	// b = sqrt((y2^2 - y1^2) * a^2 / (x1^2 - x2^2))
+	//
+	// x1^2 / a^2 + y1^2 / (y2^2 - y1^2) / a^2 * (x1^2 - x2^2) = 1
+	// x1^2 + y1^2 * (x1^2 - x2^2) / (y2^2 - y1^2) = a^2
+	//
+	// a = sqrt(x1^2 + y1^2 * (x1^2 - x2^2) / (y2^2 - y1^2))
+	//
+	// y = sqrt((1 - x**2 / a**2) * b**2)
+
+	const auto x1 = victims_coefficients[0];
+	const auto y1 = killers_coefficients[0];
+
+	const auto x2 = victims_coefficients[1];
+	const auto y2 = killers_coefficients[1];
+
+	const auto a = std::sqrt(x1 * x1 + y1 * y1 * (x1 * x1 - x2 * x2) / (y2 * y2 - y1 * y1));
+	const auto b = std::sqrt((y2 * y2 - y1 * y1) * a * a / (x1 * x1 - x2 * x2));
 
 	plot
 		.reset_all()
 		.savetops("killers_to_victims")
 		.set_title("Killers to Victims")
 		.set_grid()
-		.set_style("lines")
-		.set_xlabel("victims")
-		.set_ylabel("killers")
 		.set_style("points")
-		.plot_xy(victims_coefficients, killers_coefficients)
-		.showonscreen();*/
+		.set_xlabel("victims")
+		.set_ylabel("killers");
 
-	std::puts("<table>");
-
-	std::puts("\t<tr>");
-	std::puts("\t\t<th>Time</th>");
-	std::puts("\t\t<th>V(T)</th>");
-	std::puts("\t\t<th>K(T)</th>");
-	std::puts("\t</tr>");
-
-	for (int i = 0; i <= 46; ++i) {
-		long double t = 0, v = 0, k = 0;
-		std::scanf("%Lf%Lf%Lf", &t, &v, &k);
-
-		std::puts("\t<tr>");
-		std::printf("\t\t<td>%.2Lf</td>\n", t);
-		std::printf("\t\t<td>%.2Lf</td>\n", v);
-		std::printf("\t\t<td>%.2Lf</td>\n", k);
-		std::puts("\t</tr>");
-	}
-
-	std::puts("</table>");
+	std::stringstream eq;
+	eq << "plot \"<( echo 0 0 " << a << " " << b << " 0 )\" w ellipses title \"k(v)\"";
+	plot << eq.str();
 
 	return 0;
 }
